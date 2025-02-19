@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Procesador de Datos de Tráfico</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .file-list {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+        }
+        .file-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-list li {
+            margin: 5px 0;
+        }
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .process-tabs {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: #f0f0f0;
+            margin-right: 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .tab-button:hover {
+            background-color: #e0e0e0;
+        }
+        .tab-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        #vehicular-content {
+            display: block;
+        }
+        .sampling-config {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+        }
+        .sampling-config label {
+            display: block;
+            margin: 5px 0;
+        }
+        .sampling-config input[type="number"] {
+            width: 60px;
+            padding: 3px;
+        }
+        .documentation-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .templates-section {
+            margin: 10px 0 20px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .download-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .download-link {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .download-link:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Procesamiento de Datos para Perú</h1>
+        
+        <!-- Tabs para seleccionar tipo de procesamiento -->
+        <div class="process-tabs">
+            <button class="tab-button active" data-tab="vehicular">Proceso Vehicular</button>
+            <button class="tab-button" data-tab="peatonal">Proceso Peatonal</button>
+        </div>
+
+        <!-- Contenido del proceso vehicular -->
+        <div class="tab-content" id="vehicular-content">
+            <!-- Sección Filipinas -->
+            <div class="upload-section">
+                <h2>Archivos de Filipinas (Opcional)</h2>
+                <div class="download-links">
+                    <a href="/download_template/filipinas" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="filipinasInput" multiple accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivos seleccionados:</h4>
+                    <ul id="filipinasList"></ul>
+                </div>
+            </div>
+
+            <!-- Sección Chile -->
+            <div class="upload-section">
+                <h2>Archivos de Chile</h2>
+                <div class="download-links">
+                    <a href="/download_template/chile" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="chileInput" multiple accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivos seleccionados:</h4>
+                    <ul id="chileList"></ul>
+                </div>
+            </div>
+
+            <!-- Sección Complementarios -->
+            <div class="upload-section">
+                <h2>Archivos Complementarios (Opcional)</h2>
+                <div class="download-links">
+                    <a href="/download_template/complementarios" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="complementariosInput" multiple accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivos seleccionados:</h4>
+                    <ul id="complementariosList"></ul>
+                </div>
+            </div>
+
+            <!-- Sección Plantilla -->
+            <div class="upload-section">
+                <h2>Archivo Plantilla</h2>
+                <div class="download-links">
+                    <a href="/download_template/plantilla" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="plantillaInput" accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivo seleccionado:</h4>
+                    <ul id="plantillaList"></ul>
+                </div>
+            </div>
+
+            <!-- Agregar dentro de la sección vehicular, antes del botón de procesar -->
+            <div class="upload-section">
+                <h2>Configuración de Muestreo</h2>
+                <div class="sampling-config">
+                    <label>
+                        <input type="radio" name="samplingType" value="CADA_HORA" checked>
+                        Muestreo cada hora
+                    </label>
+                    <label>
+                        <input type="radio" name="samplingType" value="CADA_15_MIN">
+                        Muestreo cada 15 minutos
+                    </label>
+                    <div class="sampling-minutes" style="display: none; margin-top: 10px;">
+                        <label>
+                            Minutos de muestreo:
+                            <input type="number" id="samplingMinutes" value="5" min="1" max="15">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress" id="progressArea">
+                <h3>Procesando archivos...</h3>
+                <progress id="progressBar" value="0" max="100"></progress>
+            </div>
+
+            <div class="button-container">
+                <button id="processButton">Procesar Archivos</button>
+            </div>
+        </div>
+
+        <!-- Contenido del proceso peatonal -->
+        <div class="tab-content" id="peatonal-content">
+            <!-- Sección Peatones -->
+            <div class="upload-section">
+                <h2>Archivos de Peatones</h2>
+                <div class="download-links">
+                    <a href="/download_template/peatones" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="peatonesInput" multiple accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivos seleccionados:</h4>
+                    <ul id="peatonesList"></ul>
+                </div>
+            </div>
+
+            <!-- Sección Plantilla Peatones -->
+            <div class="upload-section">
+                <h2>Archivo Plantilla</h2>
+                <div class="download-links">
+                    <a href="/download_template/plantilla" class="download-link">Descargar Ejemplo</a>
+                </div>
+                <input type="file" id="plantillaPeatonesInput" accept=".xlsx">
+                <div class="file-list">
+                    <h4>Archivo seleccionado:</h4>
+                    <ul id="plantillaPeatonesList"></ul>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button id="processPeatonesButton">Procesar Archivos de Peatones</button>
+            </div>
+        </div>
+
+        <div class="documentation-section">
+            <h2>Documentación</h2>
+            <div class="download-links">
+                <a href="/download_docs/README.md" class="download-link">Descargar Manual de Usuario</a>
+                <a href="/download_docs/requirements.txt" class="download-link">Descargar Requirements</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para actualizar la lista de archivos
+        function updateFileList(files, listElement) {
+            listElement.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const li = document.createElement('li');
+                li.textContent = file.name;
+                listElement.appendChild(li);
+            });
+        }
+
+        // Configurar los listeners para cada input
+        const inputs = {
+            'filipinas': document.getElementById('filipinasInput'),
+            'chile': document.getElementById('chileInput'),
+            'complementarios': document.getElementById('complementariosInput'),
+            'plantilla': document.getElementById('plantillaInput'),
+            'peatones': document.getElementById('peatonesInput'),
+            'plantillaPeatones': document.getElementById('plantillaPeatonesInput')
+        };
+
+        const lists = {
+            'filipinas': document.getElementById('filipinasList'),
+            'chile': document.getElementById('chileList'),
+            'complementarios': document.getElementById('complementariosList'),
+            'plantilla': document.getElementById('plantillaList'),
+            'peatones': document.getElementById('peatonesList'),
+            'plantillaPeatones': document.getElementById('plantillaPeatonesList')
+        };
+
+        // Agregar listeners para cada input
+        Object.keys(inputs).forEach(key => {
+            inputs[key].addEventListener('change', (e) => {
+                updateFileList(e.target.files, lists[key]);
+            });
+        });
+
+        // Manejar el proceso de subida
+        document.getElementById('processButton').addEventListener('click', async () => {
+            const formData = new FormData();
+            
+            // Agregar configuración de muestreo
+            const samplingType = document.querySelector('input[name="samplingType"]:checked').value;
+            formData.append('samplingType', samplingType);
+            
+            if (samplingType === 'CADA_15_MIN') {
+                const samplingMinutes = document.getElementById('samplingMinutes').value;
+                formData.append('samplingMinutes', samplingMinutes);
+            }
+            
+            // Verificar archivos requeridos
+            if (!inputs.chile.files.length || !inputs.plantilla.files.length) {
+                alert('Por favor, selecciona los archivos requeridos (Chile y Plantilla)');
+                return;
+            }
+
+            // Agregar archivos al FormData con sus tipos
+            if (inputs.filipinas.files.length > 0) {
+                Array.from(inputs.filipinas.files).forEach(file => {
+                    formData.append('filipinas[]', file);
+                });
+            }
+            
+            Array.from(inputs.chile.files).forEach(file => {
+                formData.append('chile[]', file);
+            });
+            
+            Array.from(inputs.complementarios.files).forEach(file => {
+                formData.append('complementarios[]', file);
+            });
+            
+            if (inputs.plantilla.files[0]) {
+                formData.append('plantilla', inputs.plantilla.files[0]);
+            }
+
+            // Mostrar progreso
+            const progressArea = document.getElementById('progressArea');
+            progressArea.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = `/download/${data.session_id}`;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error en el proceso: ' + error);
+            } finally {
+                progressArea.style.display = 'none';
+            }
+        });
+
+        document.getElementById('processPeatonesButton').addEventListener('click', async () => {
+            const formData = new FormData();
+            
+            // Verificar archivos requeridos
+            if (!inputs.peatones.files.length || !inputs.plantillaPeatones.files.length) {
+                alert('Por favor, selecciona los archivos requeridos (Peatones y Plantilla)');
+                return;
+            }
+
+            // Agregar archivos al FormData con sus tipos
+            Array.from(inputs.peatones.files).forEach(file => {
+                formData.append('peatones[]', file);
+            });
+            
+            if (inputs.plantillaPeatones.files[0]) {
+                formData.append('plantilla', inputs.plantillaPeatones.files[0]);
+            }
+
+            // Mostrar progreso
+            const progressArea = document.getElementById('progressArea');
+            progressArea.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload_peatones', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = `/downloadPeatones/${data.session_id}`;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error en el proceso: ' + error);
+            } finally {
+                progressArea.style.display = 'none';
+            }
+        });
+
+        // Manejar los tabs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mostrar el contenido vehicular por defecto
+            document.getElementById('vehicular-content').style.display = 'block';
+            document.getElementById('peatonal-content').style.display = 'none';
+            
+            // Agregar listeners a los botones de tab
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remover clase active de todos los botones
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    // Agregar clase active al botón clickeado
+                    this.classList.add('active');
+                    
+                    // Ocultar todos los contenidos
+                    document.getElementById('vehicular-content').style.display = 'none';
+                    document.getElementById('peatonal-content').style.display = 'none';
+                    
+                    // Mostrar el contenido correspondiente
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId + '-content').style.display = 'block';
+                });
+            });
+        });
+
+        // Agregar listener para mostrar/ocultar minutos de muestreo
+        document.querySelectorAll('input[name="samplingType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const minutesDiv = document.querySelector('.sampling-minutes');
+                minutesDiv.style.display = e.target.value === 'CADA_15_MIN' ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html> 

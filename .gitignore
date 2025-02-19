@@ -1,0 +1,14 @@
+# Directorios
+__pycache__/
+uploads/
+data_*/
+.venv/
+.env/
+
+# Archivos
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.xlsx
+.DS_Store 
