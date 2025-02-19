@@ -1,4 +1,4 @@
-# Sistema Web de Procesamiento de Datos de Tráfico
+# Sistema Web de Procesamiento de Datos de Tráfico para Perú
 
 Este sistema web procesa datos de tráfico vehicular y peatonal, combinando y homologando datos para generar reportes en formato Perú. El sistema maneja dos tipos de procesamiento independientes:
 1. Procesamiento vehicular (Filipinas y Chile)
