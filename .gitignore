@@ -10,5 +10,8 @@ data_*/
 *.pyo
 *.pyd
 .Python
-*.xlsx
 .DS_Store 
+
+# Ignorar Excel excepto plantillas
+*.xlsx
+!plantillas/**/*.xlsx 
