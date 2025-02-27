@@ -64,32 +64,53 @@ def corregir_intervalos(grupo, fechas_mapping):
     """
     Corrige los intervalos usando el mapeo de fechas
     """
-    fuente = grupo.name[0]  # FUENTE DE DATOS
-    if fuente not in fechas_mapping:
-        raise ValueError(f"FUENTE DE DATOS '{fuente}' no está en el mapeo de fechas de inicio.")
-    
-    # Obtener la fecha del intervalo original para mantener el día correcto
-    fecha_original = pd.to_datetime(grupo['intervalo'].iloc[0].split(' - ')[0])
-    fecha_inicio = fechas_mapping[fuente]
-    
-    # Ajustar fecha_inicio para usar el día correcto del intervalo original
-    fecha_inicio = fecha_inicio.replace(
-        year=fecha_original.year,
-        month=fecha_original.month,
-        day=fecha_original.day
-    )
-    
-    intervalos = []
-    current_start = fecha_inicio
-    for idx, row in grupo.iterrows():
-        start = current_start
-        end = start + timedelta(minutes=5)
-        intervalo_str = f"{start.strftime('%m/%d/%Y %H:%M:%S')} - {end.strftime('%m/%d/%Y %H:%M:%S')}"
-        intervalos.append(intervalo_str)
-        current_start = end
-    
-    grupo['intervalo'] = intervalos
-    return grupo
+    try:
+        # Debug: Mostrar información del grupo
+        print("\nDebug corregir_intervalos:")
+        print(f"Tipo de grupo.name: {type(grupo.name)}")
+        print(f"Contenido de grupo.name: {grupo.name}")
+        
+        fuente = grupo.name[0]  # FUENTE DE DATOS
+        
+        # Debug: Mostrar información del punto que no se encuentra
+        print(f"\nFuente a buscar: {fuente}")
+        print(f"Tipo de fuente: {type(fuente)}")
+        print("Claves disponibles en el mapeo:")
+        for k in fechas_mapping.keys():
+            print(f"- {k} (tipo: {type(k)})")
+        
+        if fuente not in fechas_mapping:
+            raise ValueError(f"FUENTE DE DATOS '{fuente}' no está en el mapeo de fechas de inicio.")
+        
+        # Obtener la fecha del intervalo original para mantener el día correcto
+        fecha_original = pd.to_datetime(grupo['intervalo'].iloc[0].split(' - ')[0])
+        fecha_inicio = fechas_mapping[fuente]  # Ya no necesitamos la tupla
+        
+        # Ajustar fecha_inicio para usar el día correcto del intervalo original
+        fecha_inicio = fecha_inicio.replace(
+            year=fecha_original.year,
+            month=fecha_original.month,
+            day=fecha_original.day
+        )
+        
+        intervalos = []
+        current_start = fecha_inicio
+        for idx, row in grupo.iterrows():
+            start = current_start
+            end = start + timedelta(minutes=5)
+            intervalo_str = f"{start.strftime('%m/%d/%Y %H:%M:%S')} - {end.strftime('%m/%d/%Y %H:%M:%S')}"
+            intervalos.append(intervalo_str)
+            current_start = end
+        
+        grupo['intervalo'] = intervalos
+        return grupo
+        
+    except Exception as e:
+        print(f"Error en corregir_intervalos: {str(e)}")
+        print("Traceback completo:")
+        import traceback
+        traceback.print_exc()
+        raise
 
 def ajustar_hora_cercana(tiempo):
     """
@@ -118,7 +139,7 @@ def interpolar_datos(df):
 
 def interpolar_datos_horarios(df):
     """
-    Método original: Interpola datos de 5 minutos cada hora
+    Interpola datos entre intervalos de 5 minutos consecutivos
     """
     resultados = []
     
@@ -157,21 +178,20 @@ def interpolar_datos_horarios(df):
         
         # Generar resultados para cada intervalo de 15 minutos
         for t in intervalos_completos:
-            hora_base = t.replace(minute=0, second=0)
-            valor_base = valores_por_hora.get(hora_base, 0)
+            hora_actual = t.replace(minute=0, second=0)
+            hora_siguiente = hora_actual + timedelta(hours=1)
             
-            # Determinar el factor según el minuto dentro de la hora
+            valor_actual = valores_por_hora.get(hora_actual, 0)
+            valor_siguiente = valores_por_hora.get(hora_siguiente, valor_actual)  # Si no hay siguiente, mantener el actual
+            
+            # Calcular la interpolación basada en la posición en la hora
             minuto = t.minute
             if minuto == 0:
-                factor = 1.0
-            elif minuto == 15:
-                factor = 0.7
-            elif minuto == 30:
-                factor = 0.4
-            else:  # minuto == 45
-                factor = 0.2
-                
-            valor = int(round(valor_base * factor))
+                valor = valor_actual
+            else:
+                # Interpolar entre valor_actual y valor_siguiente
+                progreso = minuto / 60  # Qué tanto hemos avanzado en la hora (0.25, 0.5, 0.75)
+                valor = int(round(valor_actual + (valor_siguiente - valor_actual) * progreso))
             
             resultados.append({
                 'PROYECTO': grupo['proyecto'].iloc[0],
@@ -238,35 +258,34 @@ def interpolar_datos_15min(df):
 def cargar_configuracion_fechas(archivo_config):
     """
     Carga la configuración de fechas desde un archivo Excel.
-    Retorna un diccionario donde la clave es una tupla (punto_control, fecha)
     """
     try:
-        # Leer el archivo de configuración desde la tercera hoja
         df_config = pd.read_excel(archivo_config, sheet_name=2)
-        
-        # Normalizar nombres de columnas
         df_config.columns = [normalizar_texto(col) for col in df_config.columns]
         
-        # Verificar columnas requeridas
-        columnas_requeridas = ['punto_control', 'fecha_hora']
-        for col in columnas_requeridas:
-            if col not in df_config.columns:
-                raise ValueError(f"Columna requerida '{col}' no encontrada en el archivo de configuración")
+        # Debug: Mostrar todos los puntos de control en la configuración
+        print("\nPuntos de control en la plantilla:")
+        print(df_config['punto_control'].tolist())
         
         # Convertir la columna de fecha_hora a datetime
         df_config['fecha_hora'] = pd.to_datetime(df_config['fecha_hora'])
-        # Extraer solo la fecha (sin hora) para el mapeo
         df_config['fecha'] = df_config['fecha_hora'].dt.date
         
-        # Crear el diccionario de configuración usando tuplas (punto_control, fecha) como claves
+        # Crear diccionario de mapeo
         config_dict = {}
         for _, row in df_config.iterrows():
-            config_dict[(row['punto_control'], row['fecha'])] = row['fecha_hora']
+            # Usar el punto de control directamente como clave
+            config_dict[row['punto_control']] = row['fecha_hora']
         
+        # Debug: Mostrar todas las claves del diccionario
+        print("\nMapeos disponibles:")
+        for pc, fecha in config_dict.items():
+            print(f"PC: {pc}, Fecha: {fecha}")
+            
         return config_dict
-    
+        
     except Exception as e:
-        log_mensaje(f"Error al cargar el archivo de configuración: {str(e)}", critical=True)
+        print(f"Error al cargar el archivo de configuración: {str(e)}")
         raise
 
 def procesar_archivo_inicial(archivo_excel, fecha_inicio_mapping):
@@ -327,57 +346,54 @@ def procesar_archivo_inicial(archivo_excel, fecha_inicio_mapping):
 
         # Extraer fecha del campo LOCALIZACIÓN
         fecha_str = df['localizacion'].iloc[0]
-        # Actualizar el patrón para capturar la fecha en el nuevo formato
         match = re.search(r'(\d{2}\.\d{2}\.\d{4})', fecha_str)
         if not match:
-            # Intentar con formato alternativo
             match = re.search(r'(\d{2}\.\d{2})', fecha_str)
         if not match:
             raise ValueError(f"No se pudo extraer la fecha de LOCALIZACIÓN: {fecha_str}")
-        fecha = match.group(1).replace('.', '-')[:5]  # Tomar solo DD-MM
         
-        # Extraer nombre del día (actualizado para el nuevo formato)
+        # Extraer nombre del día
         match_dia = re.search(r'Dia \d+\s*-\s*(.*?)\s+\d{2}', fecha_str)
         if not match_dia:
-            # Intentar formato alternativo
             match_dia = re.search(r'Dia \d+\s*-\s*(.*?)$', fecha_str)
         nombre_dia = match_dia.group(1).strip() if match_dia else 'dia'
 
-        # Obtener la fecha del primer intervalo del archivo
-        primera_fecha = pd.to_datetime(df['intervalo'].iloc[0].split(' - ')[0]).date()
-        dia_anterior = primera_fecha - timedelta(days=1)
+        # Limpiar espacios en blanco de la columna fuente de datos
+        df['fuente de datos'] = df['fuente de datos'].str.strip()
         
-        # Crear un nuevo diccionario de mapeo específico para esta fecha y el día anterior
+        # Debug: Mostrar valores después de limpiar
+        print("\nValores únicos en FUENTE DE DATOS después de limpiar:")
+        print(df['fuente de datos'].unique())
+        
+        # Obtener la fecha del primer intervalo del archivo
+        primera_fecha = pd.to_datetime(df['intervalo'].iloc[0].split(' - ')[0])
+        fecha = primera_fecha.strftime('%d-%m')  # Convertir a string DD-MM
+        
+        print("\nDEBUG FECHA PASO A PASO:")
+        print(f"1. Fecha después de strftime: {fecha}")
+        
+        # Crear un nuevo diccionario de mapeo específico para esta fecha
         mapeo_fecha_especifica = {}
-        for (punto_control, fecha_config), fecha_hora in fecha_inicio_mapping.items():
-            # Incluir mapeos tanto del día actual como del día anterior
-            if fecha_config in [primera_fecha, dia_anterior]:
-                # Si es del día anterior, verificar que la hora sea después de las 22:00
-                if fecha_config == dia_anterior and fecha_hora.hour < 22:
-                    continue
-                # Si ya existe un mapeo para este punto de control, usar el más cercano a medianoche
-                if punto_control in mapeo_fecha_especifica:
-                    hora_actual = mapeo_fecha_especifica[punto_control].hour
-                    hora_nueva = fecha_hora.hour
-                    # Si la hora nueva está más cerca de medianoche, actualizar
-                    if (hora_actual < 22 and hora_nueva >= 22) or \
-                       (hora_actual >= 22 and hora_nueva >= 22 and fecha_hora > mapeo_fecha_especifica[punto_control]):
-                        mapeo_fecha_especifica[punto_control] = fecha_hora
-                else:
-                    mapeo_fecha_especifica[punto_control] = fecha_hora
-
-        if not mapeo_fecha_especifica:
-            raise ValueError(f"No se encontraron mapeos de fecha para el día {primera_fecha} ni para el día anterior")
-
-        # Procesar y corregir los intervalos usando el mapeo específico
+        for punto_control, fecha_hora in fecha_inicio_mapping.items():
+            if punto_control.strip() in df['fuente de datos'].unique():
+                mapeo_fecha_especifica[punto_control.strip()] = fecha_hora
+        
+        print(f"2. Fecha después del mapeo: {fecha}")
+        
+        # Procesar y corregir los intervalos
         df_corrected = df.groupby(['fuente de datos', 'movimiento'], group_keys=False).apply(
             lambda x: corregir_intervalos(x, mapeo_fecha_especifica)
         )
-
+        
+        print(f"3. Fecha después de corregir_intervalos: {fecha}")
+        
         return df_corrected, (numero_dia, nombre_dia, fecha)
         
     except Exception as e:
         print(f"Error en día {numero_dia}: {str(e)}")
+        print(f"Traceback completo:")
+        import traceback
+        traceback.print_exc()
         return None, None
 
 def main():
@@ -431,11 +447,24 @@ def main():
                 if resultado[0] is not None:
                     df_procesado, (numero_dia, nombre_dia, fecha) = resultado
                     
-                    df_interpolado = interpolar_datos(df_procesado)
+                    # Debug del nombre de archivo
+                    print("\nDEBUG NOMBRE ARCHIVO:")
+                    print(f"Número día: {numero_dia}")
+                    print(f"Nombre día: {nombre_dia}")
+                    print(f"Fecha: {fecha}")
                     
-                    archivo_salida = os.path.join(carpeta_final, f'{numero_dia}.{nombre_dia}_{fecha}_filipinas.xlsx')
+                    nombre_archivo = f'{numero_dia}.{nombre_dia}_{fecha}_filipinas.xlsx'
+                    print(f"Nombre archivo final: {nombre_archivo}")
+                    
+                    archivo_salida = os.path.join(carpeta_final, nombre_archivo)
+                    df_interpolado = interpolar_datos(df_procesado)
                     df_interpolado.to_excel(archivo_salida, index=False)
                     log_mensaje(f"Archivo guardado: {os.path.basename(archivo_salida)}\n", critical=True)
+                    
+                    # PUNTO DE DEBUG 2
+                    print("\nDEBUG FECHA EN MAIN:")
+                    print(f"fecha después de desempaquetar: {fecha}")
+                    print(f"tipo de fecha: {type(fecha)}")
                     
             except Exception as e:
                 log_mensaje(f"Error en día {numero_dia}: {str(e)}\n", critical=True)
@@ -448,6 +477,26 @@ def obtener_numero_dia(nombre_carpeta):
     """
     match = re.match(r'(\d+)', nombre_carpeta)
     return int(match.group(1)) if match else None
+
+def ajustar_intervalos(df):
+    """
+    Ajusta los intervalos de 5 minutos a sus horas reales
+    """
+    intervalos_ajustados = []
+    for i, row in df.iterrows():
+        hora = i // 12  # Cada 12 registros de 5 min = 1 hora
+        tiempo_inicio = datetime(2025, 2, 8, hora, 0)  # La fecha es irrelevante
+        tiempo_fin = tiempo_inicio + timedelta(minutes=5)
+        intervalos_ajustados.append(f"{tiempo_inicio.strftime('%H:%M:%S')} - {tiempo_fin.strftime('%H:%M:%S')}")
+    
+    df['intervalo'] = intervalos_ajustados
+    return df
+
+def interpolar_15min(df):
+    """
+    Interpola los datos a intervalos de 15 minutos
+    """
+    # Aquí la lógica de interpolación
 
 if __name__ == "__main__":
     main()

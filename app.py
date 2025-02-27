@@ -9,7 +9,7 @@ import pandas as pd
 import json
 from pathlib import Path
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Configuración básica
 UPLOAD_FOLDER = 'uploads'
