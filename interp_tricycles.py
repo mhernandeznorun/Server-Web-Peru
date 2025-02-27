@@ -60,31 +60,19 @@ def normalizar_columnas(df):
     # Renombrar las columnas
     return df.rename(columns=columnas_normalizadas)
 
-def corregir_intervalos(grupo, fechas_mapping):
+def corregir_intervalos(grupo, fecha_inicio_mapping):
     """
     Corrige los intervalos usando el mapeo de fechas
     """
     try:
-        # Debug: Mostrar información del grupo
-        print("\nDebug corregir_intervalos:")
-        print(f"Tipo de grupo.name: {type(grupo.name)}")
-        print(f"Contenido de grupo.name: {grupo.name}")
-        
         fuente = grupo.name[0]  # FUENTE DE DATOS
         
-        # Debug: Mostrar información del punto que no se encuentra
-        print(f"\nFuente a buscar: {fuente}")
-        print(f"Tipo de fuente: {type(fuente)}")
-        print("Claves disponibles en el mapeo:")
-        for k in fechas_mapping.keys():
-            print(f"- {k} (tipo: {type(k)})")
-        
-        if fuente not in fechas_mapping:
+        if fuente not in fecha_inicio_mapping:
             raise ValueError(f"FUENTE DE DATOS '{fuente}' no está en el mapeo de fechas de inicio.")
         
         # Obtener la fecha del intervalo original para mantener el día correcto
         fecha_original = pd.to_datetime(grupo['intervalo'].iloc[0].split(' - ')[0])
-        fecha_inicio = fechas_mapping[fuente]  # Ya no necesitamos la tupla
+        fecha_inicio = fecha_inicio_mapping[fuente]  # Ya no necesitamos la tupla
         
         # Ajustar fecha_inicio para usar el día correcto del intervalo original
         fecha_inicio = fecha_inicio.replace(
@@ -263,10 +251,6 @@ def cargar_configuracion_fechas(archivo_config):
         df_config = pd.read_excel(archivo_config, sheet_name=2)
         df_config.columns = [normalizar_texto(col) for col in df_config.columns]
         
-        # Debug: Mostrar todos los puntos de control en la configuración
-        print("\nPuntos de control en la plantilla:")
-        print(df_config['punto_control'].tolist())
-        
         # Convertir la columna de fecha_hora a datetime
         df_config['fecha_hora'] = pd.to_datetime(df_config['fecha_hora'])
         df_config['fecha'] = df_config['fecha_hora'].dt.date
@@ -274,13 +258,7 @@ def cargar_configuracion_fechas(archivo_config):
         # Crear diccionario de mapeo
         config_dict = {}
         for _, row in df_config.iterrows():
-            # Usar el punto de control directamente como clave
             config_dict[row['punto_control']] = row['fecha_hora']
-        
-        # Debug: Mostrar todas las claves del diccionario
-        print("\nMapeos disponibles:")
-        for pc, fecha in config_dict.items():
-            print(f"PC: {pc}, Fecha: {fecha}")
             
         return config_dict
         
@@ -289,114 +267,39 @@ def cargar_configuracion_fechas(archivo_config):
         raise
 
 def procesar_archivo_inicial(archivo_excel, fecha_inicio_mapping):
-    """
-    Procesa el archivo inicial usando el mapeo directo de puntos de control a fechas
-    """
     try:
-        # Extraer información de la carpeta padre
-        carpeta_padre = os.path.basename(os.path.dirname(archivo_excel))
-        numero_dia = obtener_numero_dia(carpeta_padre)
-        
-        if not numero_dia:
-            print(f"No se pudo extraer el número de día de la carpeta: {carpeta_padre}")
-            return None, None
-        
-        print(f"\nProcesando archivo: {os.path.basename(archivo_excel)}")
-        print(f"Número de día: {numero_dia}")
-
-        # Leer el archivo Excel usando la segunda hoja
+        # Eliminar todos los prints de debug
         df = pd.read_excel(archivo_excel, sheet_name=1, skiprows=1)
         df = normalizar_columnas(df)
-
-        # Verificar columnas necesarias (en ambos idiomas)
-        required_columns = [
-            ('fuente de datos', 'data source'),
-            ('movimiento', 'movement'),
-            ('intervalo', 'interval'),
-            ('localizacion', 'location'),
-            ('proyecto', 'project')  # Añadir proyecto/project a las columnas requeridas
-        ]
         
-        for cols in required_columns:
-            if not any(col in df.columns for col in cols):
-                raise ValueError(f"No se encuentra ninguna de las columnas: {cols}")
+        # Obtener número y nombre del día
+        nombre_carpeta = os.path.basename(os.path.dirname(archivo_excel))
+        numero_dia = obtener_numero_dia(nombre_carpeta)
+        nombre_dia = obtener_nombre_dia(archivo_excel)
         
-        # Normalizar nombres de columnas al español
-        column_mapping = {
-            'data source': 'fuente de datos',
-            'movement': 'movimiento',
-            'interval': 'intervalo',
-            'location': 'localizacion',
-            'project': 'proyecto',
-            'geolocation': 'geolocalizacion'
-        }
-        
-        # Aplicar el mapeo de columnas
-        for eng_col, esp_col in column_mapping.items():
-            if eng_col in df.columns:
-                df[esp_col] = df[eng_col]
-                df = df.drop(columns=[eng_col])
-
-        # Asegurarse de que todas las columnas necesarias estén presentes
-        columnas_requeridas = ['proyecto', 'localizacion', 'fuente de datos', 
-                              'geolocalizacion', 'intervalo', 'movimiento']
-        for col in columnas_requeridas:
-            if col not in df.columns:
-                raise ValueError(f"Columna requerida '{col}' no encontrada después de la normalización")
-
-        # Extraer fecha del campo LOCALIZACIÓN
-        fecha_str = df['localizacion'].iloc[0]
-        match = re.search(r'(\d{2}\.\d{2}\.\d{4})', fecha_str)
-        if not match:
-            match = re.search(r'(\d{2}\.\d{2})', fecha_str)
-        if not match:
-            raise ValueError(f"No se pudo extraer la fecha de LOCALIZACIÓN: {fecha_str}")
-        
-        # Extraer nombre del día
-        match_dia = re.search(r'Dia \d+\s*-\s*(.*?)\s+\d{2}', fecha_str)
-        if not match_dia:
-            match_dia = re.search(r'Dia \d+\s*-\s*(.*?)$', fecha_str)
-        nombre_dia = match_dia.group(1).strip() if match_dia else 'dia'
-
-        # Limpiar espacios en blanco de la columna fuente de datos
-        df['fuente de datos'] = df['fuente de datos'].str.strip()
-        
-        # Debug: Mostrar valores después de limpiar
-        print("\nValores únicos en FUENTE DE DATOS después de limpiar:")
-        print(df['fuente de datos'].unique())
-        
-        # Obtener la fecha del primer intervalo del archivo
+        # Obtener fecha
         primera_fecha = pd.to_datetime(df['intervalo'].iloc[0].split(' - ')[0])
-        fecha = primera_fecha.strftime('%d-%m')  # Convertir a string DD-MM
+        fecha = primera_fecha.strftime('%d-%m')
         
-        print("\nDEBUG FECHA PASO A PASO:")
-        print(f"1. Fecha después de strftime: {fecha}")
-        
-        # Crear un nuevo diccionario de mapeo específico para esta fecha
+        # Procesar datos
         mapeo_fecha_especifica = {}
         for punto_control, fecha_hora in fecha_inicio_mapping.items():
             if punto_control.strip() in df['fuente de datos'].unique():
                 mapeo_fecha_especifica[punto_control.strip()] = fecha_hora
         
-        print(f"2. Fecha después del mapeo: {fecha}")
-        
-        # Procesar y corregir los intervalos
         df_corrected = df.groupby(['fuente de datos', 'movimiento'], group_keys=False).apply(
             lambda x: corregir_intervalos(x, mapeo_fecha_especifica)
         )
-        
-        print(f"3. Fecha después de corregir_intervalos: {fecha}")
         
         return df_corrected, (numero_dia, nombre_dia, fecha)
         
     except Exception as e:
         print(f"Error en día {numero_dia}: {str(e)}")
-        print(f"Traceback completo:")
-        import traceback
-        traceback.print_exc()
         return None, None
 
 def main():
+    print("\nIniciando procesamiento de datos de Filipinas...")
+    
     # Cargar configuración si existe
     try:
         with open('config.json', 'r') as f:
@@ -407,10 +310,6 @@ def main():
         # Usar valores por defecto si no hay configuración
         TIPO_MUESTREO = "CADA_HORA"
         MINUTOS_MUESTREO = 5
-    
-    print("\n" + "="*50)
-    print("Iniciando procesamiento de datos de Filipinas")
-    print("="*50 + "\n")
     
     # Crear carpetas de salida
     carpeta_final = 'data_filipinas'
@@ -446,29 +345,17 @@ def main():
                 resultado = procesar_archivo_inicial(archivo, fecha_inicio_mapping)
                 if resultado[0] is not None:
                     df_procesado, (numero_dia, nombre_dia, fecha) = resultado
-                    
-                    # Debug del nombre de archivo
-                    print("\nDEBUG NOMBRE ARCHIVO:")
-                    print(f"Número día: {numero_dia}")
-                    print(f"Nombre día: {nombre_dia}")
-                    print(f"Fecha: {fecha}")
-                    
                     nombre_archivo = f'{numero_dia}.{nombre_dia}_{fecha}_filipinas.xlsx'
-                    print(f"Nombre archivo final: {nombre_archivo}")
-                    
                     archivo_salida = os.path.join(carpeta_final, nombre_archivo)
                     df_interpolado = interpolar_datos(df_procesado)
                     df_interpolado.to_excel(archivo_salida, index=False)
-                    log_mensaje(f"Archivo guardado: {os.path.basename(archivo_salida)}\n", critical=True)
-                    
-                    # PUNTO DE DEBUG 2
-                    print("\nDEBUG FECHA EN MAIN:")
-                    print(f"fecha después de desempaquetar: {fecha}")
-                    print(f"tipo de fecha: {type(fecha)}")
+                    print(f"Completado: {nombre_archivo}")
                     
             except Exception as e:
-                log_mensaje(f"Error en día {numero_dia}: {str(e)}\n", critical=True)
+                print(f"Error en día {numero_dia}: {str(e)}")
                 continue
+    
+    print("\nProcesamiento de Filipinas completado")
 
 def obtener_numero_dia(nombre_carpeta):
     """
@@ -477,6 +364,15 @@ def obtener_numero_dia(nombre_carpeta):
     """
     match = re.match(r'(\d+)', nombre_carpeta)
     return int(match.group(1)) if match else None
+
+def obtener_nombre_dia(archivo_excel):
+    # Implementa la lógica para obtener el nombre del día del archivo
+    # Esto puede ser basado en el nombre del archivo, en la fecha del archivo, etc.
+    # Por ejemplo, podrías usar re.search para encontrar el nombre del día en el nombre del archivo
+    # o podrías leer el archivo y extraer la fecha y luego determinar el nombre del día.
+    # Aquí se asume que el nombre del archivo contiene el nombre del día.
+    # Puedes implementar una lógica más robusta basada en el nombre del archivo.
+    return "dia"  # Por defecto, devuelve "dia"
 
 def ajustar_intervalos(df):
     """

@@ -5,11 +5,11 @@ from pathlib import Path
 
 def configurar_logging():
     """
-    Configura el sistema de logging
+    Configura el sistema de logging para mostrar solo mensajes esenciales
     """
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
+        format='%(message)s',  # Simplificar formato
         handlers=[
             logging.FileHandler('proceso.log'),
             logging.StreamHandler()

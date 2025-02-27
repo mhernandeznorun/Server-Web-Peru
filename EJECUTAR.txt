@@ -1,0 +1,53 @@
+INSTRUCCIONES PARA INICIAR EL SERVIDOR
+=====================================
+
+OPCIÓN 1 (MÁS FÁCIL):
+--------------------
+1. Hacer doble clic en el archivo "iniciar_servidor.bat"
+2. Esperar que aparezca la ventana negra con el mensaje "Running on http://0.0.0.0:5000"
+
+
+OPCIÓN 2 (MANUAL):
+----------------
+1. Abrir el programa "Command Prompt" (cmd)
+   - Presionar tecla Windows + R
+   - Escribir "cmd" y presionar Enter
+
+2. En la ventana negra que se abre, navegar hasta la carpeta del programa:
+   - Escribir: cd C:\ruta\donde\esta\el\programa
+   - Presionar Enter
+
+3. Iniciar el servidor:
+   - Escribir: python app.py
+   - Presionar Enter
+   - Esperar hasta que aparezca el mensaje "Running on http://0.0.0.0:5000"
+
+
+ACCESO A LA APLICACIÓN:
+---------------------
+- Desde el mismo computador:
+  Abrir el navegador y escribir: http://localhost:5000
+
+- Desde otros computadores en la red:
+  Abrir el navegador y escribir: http://IP_DEL_SERVIDOR:5000
+  (La IP aparecerá en la ventana negra cuando inicie el servidor)
+
+
+IMPORTANTE:
+----------
+- No cerrar la ventana negra (cmd) mientras se esté usando el programa
+- Para detener el servidor: presionar Ctrl + C en la ventana negra
+- Para volver a iniciarlo: repetir el proceso desde el inicio
+
+- En la ventana negra aparecerá información del proceso en tiempo real:
+  * Qué archivos se están procesando
+  * Si hay algún error y en qué parte ocurrió
+  * Mensajes de éxito cuando se complete cada paso
+
+
+SOLUCIÓN DE PROBLEMAS:
+--------------------
+Si aparece algún error:
+1. Leer el mensaje en la ventana negra para identificar el problema
+2. Cerrar todo y volver a empezar
+3. Si el problema persiste, tomar una foto del error en la ventana negra 
