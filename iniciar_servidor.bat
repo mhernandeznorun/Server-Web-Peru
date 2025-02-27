@@ -1,5 +1,5 @@
 @echo off
 echo Iniciando servidor...
 cd %~dp0
-python app.py
+C:\Python39\python.exe app.py
 pause 

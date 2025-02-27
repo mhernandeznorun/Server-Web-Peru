@@ -14,11 +14,11 @@ OPCIÓN 2 (MANUAL):
    - Escribir "cmd" y presionar Enter
 
 2. En la ventana negra que se abre, navegar hasta la carpeta del programa:
-   - Escribir: cd C:\ruta\donde\esta\el\programa
+   - Escribir: cd D:\ruta\donde\esta\el\programa
    - Presionar Enter
 
 3. Iniciar el servidor:
-   - Escribir: python app.py
+   - Escribir: C:\Python39\python.exe app.py
    - Presionar Enter
    - Esperar hasta que aparezca el mensaje "Running on http://0.0.0.0:5000"
 
