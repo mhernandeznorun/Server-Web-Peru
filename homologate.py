@@ -28,14 +28,13 @@ def normalizar_texto(texto):
 
 def extract_pc_number(text):
     """
-    Extrae el número de PC
+    Extrae el identificador completo de PC hasta el guión
     """
     if pd.isna(text):
         return None
-    match = re.search(r'PC(\d+)', str(text))
-    if match:
-        return f'PC{match.group(1)}'
-    return None
+    # Extract everything before the dash or use the whole string if no dash
+    parts = str(text).split('-', 1)
+    return parts[0].strip()
 
 def cargar_mapeo_vehiculos(archivo_mapeo):
     """

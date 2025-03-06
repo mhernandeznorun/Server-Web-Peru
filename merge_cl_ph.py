@@ -73,18 +73,16 @@ def interpolar_datos_tricycle(df):
 
 def normalizar_valor_pc(valor):
     """
-    Normaliza los valores de PC extrayendo solo el formato básico PCN
-    Ejemplo: 'PC1-A2-722' -> 'PC1', 'PC6-B1-461' -> 'PC6'
+    Normaliza los valores de PC extrayendo todo lo que está antes del guión
+    Ejemplo: 'PC1A3B-A2-722' -> 'PC1A3B', 'PC6B1-B1-461' -> 'PC6B1'
     """
     if pd.isna(valor):
         return valor
-    # Eliminar espacios y guiones extra
-    valor = re.sub(r'\s*-\s*', '-', str(valor)).strip()
-    # Extraer el formato básico PCN
-    match = re.match(r'(PC\d+)', valor)
-    if match:
-        return match.group(1)
-    return valor
+    # Eliminar espacios extra
+    valor = str(valor).strip()
+    # Extraer todo lo que está antes del primer guión
+    parts = valor.split('-', 1)
+    return parts[0].strip()
 
 def merge_archivos_dia(archivo_chile, archivo_filipinas, carpeta_salida):
     try:

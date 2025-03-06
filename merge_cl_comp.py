@@ -134,17 +134,11 @@ def merge_vehicle_data(archivo_base, archivos_complementarios):
             coincidencias_totales = 0
             try:
                 for idx, fila in df_resultado.iterrows():
-                    # Modificar la condición de coincidencia para considerar variantes del mismo PC
-                    pc_base = re.match(r'PC\d+', fila['fuente de datos'])
-                    if pc_base:
-                        pc_pattern = pc_base.group(0)
-                        filas_coincidentes = df2[
-                            (df2['fuente de datos'].str.contains(pc_pattern, na=False, regex=True)) &
-                            (df2['intervalo'] == fila['intervalo']) &
-                            (df2['movimiento'].astype(str) == str(fila['movimiento']))
-                        ]
-                    else:
-                        filas_coincidentes = pd.DataFrame()  # No hay coincidencia si no se encuentra el patrón PC
+                    filas_coincidentes = df2[
+                        (df2['fuente de datos'] == fila['fuente de datos']) &
+                        (df2['intervalo'] == fila['intervalo']) &
+                        (df2['movimiento'].astype(str) == str(fila['movimiento']))
+                    ]
                     
                     if not filas_coincidentes.empty:
                         coincidencias_totales += 1
