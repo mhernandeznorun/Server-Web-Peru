@@ -7,8 +7,20 @@ Este sistema web procesa datos de tráfico vehicular y peatonal, combinando y ho
 ## Requisitos Previos
 
 ### Software Necesario
-- Python 3.8 o superior
+- Python 3.8 o superior (Recomendamos instalar desde Microsoft Store)
 - Navegador web moderno
+
+### Instalación de Python
+1. **Método recomendado: Microsoft Store**
+   - Abrir Microsoft Store en Windows
+   - Buscar "Python"
+   - Seleccionar la versión más reciente (3.8 o superior)
+   - Hacer clic en "Obtener" o "Instalar"
+   - Esta instalación configura automáticamente el PATH de Windows
+
+2. **Método alternativo: Instalador oficial**
+   - Descargar el instalador desde [python.org](https://www.python.org/downloads/)
+   - Durante la instalación, marcar la opción "Add Python to PATH"
 
 ### Librerías Python Requeridas
 ```bash
@@ -140,6 +152,11 @@ Para reportar problemas:
 1. Verificar logs del servidor
 2. Comprobar mensajes de error en navegador
 3. Contactar al equipo de soporte con detalles del error
+
+## Registro de Cambios
+
+### 2023-11-15
+- Modificado el sistema de extracción de identificadores PC para usar todo el texto antes del guión. Ej. "PC1A3B-a" y "PC1A3B-b" son el mismo punto "PC1A3B" en los archivos finales, pero "PC1B3B-a" es un punto diferente "PC1B3B".
 
 ---
 
